@@ -1,0 +1,158 @@
+CREATE DATABASE docesdagio;
+USE docesdagio;
+
+-- Criando a tabela tb_doceria primeiro
+CREATE TABLE tb_doceria (
+    pk_cnpj VARCHAR(20) PRIMARY KEY,
+    nome VARCHAR(60)
+);
+
+-- Criando a tabela de endereço da doceria
+CREATE TABLE tb_endereco_doceria (
+    pk_cep VARCHAR(10) PRIMARY KEY,
+    rua VARCHAR(100),
+    bairro VARCHAR(60),
+    numero NUMERIC,
+    complemento VARCHAR(100),
+    cidade VARCHAR(60),
+    fk_cnpj VARCHAR(20),
+    FOREIGN KEY (fk_cnpj) REFERENCES tb_doceria(pk_cnpj)
+);
+
+-- Criando a tabela tb_cliente
+CREATE TABLE tb_cliente (
+    id_cliente INT IDENTITY(1,1) PRIMARY KEY,
+    cpf_cliente CHAR(13) UNIQUE,
+    nome_cliente VARCHAR(60),
+    email_cliente VARCHAR(60),
+    senha_cliente VARCHAR(12),
+    telefone_cliente VARCHAR(15),
+    endereco_cliente VARCHAR(100)
+);
+
+-- Criando a tabela de contato
+CREATE TABLE tb_contato (
+    telefone VARCHAR(15),
+    email VARCHAR(60),
+    fk_id_cliente INT,
+    FOREIGN KEY (fk_id_cliente) REFERENCES tb_cliente(id_cliente)
+);
+
+-- Criando a tabela de endereço
+CREATE TABLE tb_endereco (
+    endereco VARCHAR(100),
+    fk_id_cliente INT,
+    FOREIGN KEY (fk_id_cliente) REFERENCES tb_cliente(id_cliente)
+);
+
+-- Criando a tabela de funcionários
+CREATE TABLE tb_funcionarios (
+    pk_id_funcionario INT IDENTITY(1,1) PRIMARY KEY,
+    nome VARCHAR(60),
+    funcao VARCHAR(60),
+    fk_cnpj VARCHAR(20),
+    FOREIGN KEY (fk_cnpj) REFERENCES tb_doceria(pk_cnpj)
+);
+
+-- Criando a tabela de produtos
+CREATE TABLE tb_produto (
+    pk_id_produto INT IDENTITY(1,1) PRIMARY KEY,
+    nome_produto VARCHAR(60),
+    valor_produto FLOAT,
+    qntd_estoque_produto NUMERIC,
+    descricao_produto VARCHAR(200)
+);
+
+-- Criando a tabela de pedidos
+CREATE TABLE tb_pedido (
+    pk_id_pedido INT IDENTITY(1,1) PRIMARY KEY,
+    fk_id_cliente INT,
+    fk_cnpj VARCHAR(20),
+    FOREIGN KEY (fk_id_cliente) REFERENCES tb_cliente(id_cliente),
+    FOREIGN KEY (fk_cnpj) REFERENCES tb_doceria(pk_cnpj)
+);
+
+-- Criando a tabela de itens do pedido
+CREATE TABLE tb_itens_pedidos (
+    pk_itens_pedidos INT IDENTITY(1,1) PRIMARY KEY,
+    fk_id_cliente INT,
+    fk_id_produto INT,
+    fk_id_pedido INT,
+    subtotal_itens_pedidos FLOAT,
+    data_hora DATETIME,
+    FOREIGN KEY (fk_id_cliente) REFERENCES tb_cliente(id_cliente),
+    FOREIGN KEY (fk_id_produto) REFERENCES tb_produto(pk_id_produto),
+    FOREIGN KEY (fk_id_pedido) REFERENCES tb_pedido(pk_id_pedido)
+);
+
+-- Criando a tabela de nota fiscal
+CREATE TABLE tb_nota_fiscal (
+    pk_nota_fiscal INT IDENTITY(1,1) PRIMARY KEY,
+    fk_itens_pedidos INT,
+    fk_cnpj VARCHAR(20),
+    fk_id_cliente INT,
+    FOREIGN KEY (fk_itens_pedidos) REFERENCES tb_itens_pedidos(pk_itens_pedidos),
+    FOREIGN KEY (fk_cnpj) REFERENCES tb_doceria(pk_cnpj),
+    FOREIGN KEY (fk_id_cliente) REFERENCES tb_cliente(id_cliente)
+);
+
+-- Procedimento para preencher tb_contato
+CREATE PROCEDURE PreencherContato
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO tb_contato (telefone, email, fk_id_cliente)
+    SELECT telefone_cliente, email_cliente, id_cliente
+    FROM tb_cliente
+    WHERE id_cliente NOT IN (
+        SELECT fk_id_cliente FROM tb_contato
+    );
+END;
+
+-- Procedimento para preencher tb_endereco
+CREATE PROCEDURE PreencherEndereco
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO tb_endereco (endereco, fk_id_cliente)
+    SELECT endereco_cliente, id_cliente
+    FROM tb_cliente
+    WHERE id_cliente NOT IN (
+        SELECT fk_id_cliente FROM tb_endereco
+    );
+END;
+
+-- Função para obter contato
+CREATE FUNCTION ObterContato(@id_cliente INT)
+RETURNS TABLE
+AS
+RETURN (
+    SELECT *
+    FROM tb_contato
+    WHERE fk_id_cliente = @id_cliente
+);
+
+-- Função para obter endereço
+CREATE FUNCTION ObterEndereco(@id_cliente INT)
+RETURNS TABLE
+AS
+RETURN (
+    SELECT *
+    FROM tb_endereco
+    WHERE fk_id_cliente = @id_cliente
+);
+
+INSERT INTO tb_cliente (nome_cliente, email_cliente, senha_cliente, cpf_cliente, telefone_cliente, endereco_cliente)
+VALUES 
+('João Silva', 'joao.silva@email.com', 'senha123', '1234567890000', '(11) 98765-4321', 'Rua das Flores, 123 - São Paulo, SP'),
+('Maria Oliveira', 'maria.oliveira@email.com', 'maria456', '2345678901111', '(21) 99876-5432', 'Av. Paulista, 456 - São Paulo, SP'),
+('Carlos Souza', 'carlos.souza@email.com', 'carlos789', '3456789012222', '(31) 91234-5678', 'Rua A, 789 - Belo Horizonte, MG'),
+('Ana Pereira', 'ana.pereira@email.com', 'ana1234', '4567890123333', '(41) 92345-6789', 'Rua B, 101 - Curitiba, PR'),
+('Fernanda Lima', 'fernanda.lima@email.com', 'fernanda567', '5678901234444', '(51) 93456-7890', 'Rua C, 202 - Porto Alegre, RS');
+
+EXEC PreencherContato;
+EXEC PreencherEndereco;
+
+select * from tb_contato
