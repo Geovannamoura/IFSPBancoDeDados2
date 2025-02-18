@@ -99,25 +99,25 @@ CREATE TABLE tb_nota_fiscal (
 DELIMITER $$
 
 -- Função para calcular o total do pedido
-CREATE FUNCTION calcularTotalPedido(pedido_id INT) 
+CREATE FUNCTION calcularTotalPedido(pedido_id INT) --recebe um parâmetro pedido_id (ID do pedido) e retorna um valor do tipo FLOAT.
 RETURNS FLOAT
-DETERMINISTIC
+DETERMINISTIC --retorna o mesmo resultado para os mesmos valores de entrada
 BEGIN
-    DECLARE total FLOAT DEFAULT 0;
+    DECLARE total FLOAT DEFAULT 0; --Declara a variável total do tipo FLOAT e define seu valor inicial como 0.
 
-    SELECT SUM(ip.subtotal_itens_pedidos) INTO total
+    SELECT SUM(ip.subtotal_itens_pedidos) INTO total --Soma os valores da coluna subtotal_itens_pedidos da tabela tb_itens_pedidos e armazena o resultado na variável total.
     FROM tb_itens_pedidos ip
-    WHERE ip.fk_id_pedido = pedido_id;
+    WHERE ip.fk_id_pedido = pedido_id; --Filtra os itens apenas para o pedido_id informado.
 
-    RETURN total;
+    RETURN total; --Retorna o valor total do pedido.
 END$$
 
 -- Trigger para atualizar o estoque após inserção de um pedido
-CREATE TRIGGER atualizarEstoquePedido
-AFTER INSERT ON tb_itens_pedidos
-FOR EACH ROW
+CREATE TRIGGER atualizarEstoquePedido -- vai ser ativado após a inserção de um novo item no pedido.
+AFTER INSERT ON tb_itens_pedidos --vai ser disparado dps q um novo registro entrar na tabela tb_itens_pedidos
+FOR EACH ROW --O trigger será executado para cada nova linha inserida.
 BEGIN
-    UPDATE tb_produto 
+    UPDATE tb_produto --Atualiza a tabela de produtos (tb_produto).
     SET qntd_estoque_produto = qntd_estoque_produto - NEW.subtotal_itens_pedidos
     WHERE pk_id_produto = NEW.fk_id_produto;
 END$$
